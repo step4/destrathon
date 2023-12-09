@@ -1,2 +1,1 @@
 # destrathon
-Du bist dumm!
