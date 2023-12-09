@@ -5,13 +5,17 @@
 
 import Data.Text qualified as T
 
-data Input = Up | Down | None
+data Key = Up | Down | None
+  deriving (Show, Eq)
+
+data PlayerInput = PlayerInput
+  { player1input :: Key,
+    player2input :: Key
+  }
   deriving (Show)
 
-data State = State
-  { player1input :: Input,
-    player2input :: Input,
-    width :: Integer,
+data WorldState = WorldState
+  { width :: Integer,
     height :: Integer,
     ballPos :: (Integer, Integer),
     ballVelo :: (Float, Float),
@@ -20,9 +24,13 @@ data State = State
   }
   deriving (Show)
 
--- applyState :: String -> String
--- applyState state =
-parseInput :: String -> Input
+data Winner = Player1 | Player2
+  deriving (Show)
+
+data Return = Running WorldState | GameEnd Winner
+  deriving (Show)
+
+parseInput :: String -> Key
 parseInput i
   | i == "u" = Up
   | i == "d" = Down
@@ -34,12 +42,19 @@ parseInteger i = read i :: Integer
 parseFloat :: String -> Float
 parseFloat i = read i :: Float
 
-parseState :: String -> State
-parseState input =
-  State
+parsePlayerInput :: [String] -> PlayerInput
+parsePlayerInput input =
+  PlayerInput
     { player1input = parseInput p1i,
-      player2input = parseInput p2i,
-      width = parseInteger w,
+      player2input = parseInput p2i
+    }
+  where
+    [p1i, p2i] = input
+
+parseState :: [String] -> WorldState
+parseState state =
+  WorldState
+    { width = parseInteger w,
       height = parseInteger h,
       ballPos = (parseInteger bX, parseInteger bY),
       ballVelo = (parseFloat bvX, parseFloat bvY),
@@ -47,8 +62,65 @@ parseState input =
       player2y = parseInteger p2y
     }
   where
-    [p1i, p2i, w, h, bX, bY, bvX, bvY, p1y, p2y] = map T.unpack (T.splitOn " " (T.pack input))
+    [w, h, bX, bY, bvX, bvY, p1y, p2y] = state
+
+parseWholeInput :: String -> (PlayerInput, WorldState)
+parseWholeInput wholeState = (parsePlayerInput pi, parseState st)
+  where
+    splits = T.splitOn " " (T.pack wholeState)
+    pi = map T.unpack (take 2 splits)
+    st = map T.unpack (drop 2 splits)
+
+advancePlayer :: Integer -> Key -> Integer -> Integer
+advancePlayer currentPos key height
+  | key == None = currentPos
+  | key == Up = if currentPos <= 0 then currentPos else currentPos - 1
+  | key == Down = if currentPos + 10 >= height then currentPos else currentPos + 1
+
+ballCollidesWithPlayer :: (Integer, Integer) -> Integer -> Integer -> Integer -> Bool
+ballCollidesWithPlayer (px, py) player1y player2y width
+  | px == 2 = player1y < py && py < (player1y + 10)
+  | px == width - 2 = player2y < py && py < (player2y + 10)
+  | otherwise = False
+
+advanceBall :: WorldState -> ((Integer, Integer), (Float, Float))
+advanceBall worldState = ((px, py), (vx, vy))
+  where
+    px = old_px + floor (vx * dt)
+    py = old_py + floor (vy * dt)
+    (old_px, old_py) = ballPos worldState
+    dt = 1.0
+    vy = if old_py == 0 || old_py == height worldState then -old_vy else old_vy
+    vx = if ballCollidesWithPlayer (ballPos worldState) (player1y worldState) (player2y worldState) (width worldState) then -old_vx else old_vx
+    (old_vx, old_vy) = ballVelo worldState
+
+advanceState :: PlayerInput -> WorldState -> WorldState
+advanceState input worldState =
+  WorldState
+    { width = width worldState,
+      height = height worldState,
+      ballPos = p,
+      ballVelo = v,
+      player1y = advancePlayer (player1y worldState) (player1input input) (height worldState),
+      player2y = advancePlayer (player2y worldState) (player2input input) (height worldState)
+    }
+  where
+    (p, v) = advanceBall worldState
+
+applyInputToState :: (PlayerInput, WorldState) -> Return
+applyInputToState (input, worldState)
+  | x > w = GameEnd Player1
+  | x < 0 = GameEnd Player2
+  | otherwise = Running (advanceState input worldState)
+  where
+    x = fst (ballPos worldState)
+    w = width worldState
+
+-- 1. ball behind width left and right
+-- 2. neue ballposition berechnen
+-- 3. neue playerpos berechnen
+-- 4.
 
 main = do
   input <- getLine
-  print (parseState input)
+  print (applyInputToState (parseWholeInput input))
