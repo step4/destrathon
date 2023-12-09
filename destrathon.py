@@ -1,3 +1,5 @@
+from math import sqrt
+import random
 import os
 from time import sleep
 import subprocess
@@ -6,7 +8,8 @@ from pynput import keyboard
 import curses
 import time
 
-os.unlink("output")
+if os.path.exists("output"):
+    os.unlink("output")
 
 
 def box(screen, width: int, height: int):
@@ -31,10 +34,8 @@ def draw_world(
     screen,
     width: int,
     height: int,
-    ball_x: int,
-    ball_y: int,
-    velo_x: float,
-    velo_y: float,
+    ball_x: float,
+    ball_y: float,
     player1y: int,
     player2y: int,
     player_height: int,
@@ -42,7 +43,7 @@ def draw_world(
     box(screen, width, height)
     player(screen, 3, player1y, player_height)
     player(screen, width - 3, player2y, player_height)
-    ball(screen, ball_x, ball_y)
+    ball(screen, round(ball_x), round(ball_y))
 
 
 WIDTH = 150
@@ -52,10 +53,13 @@ PLAYERHEIGHT = 10
 
 player1y = int(HEIGHT / 2) - int(PLAYERHEIGHT / 2)
 player2y = int(HEIGHT / 2) - int(PLAYERHEIGHT / 2)
-ball_x = int(WIDTH / 2)
-ball_y = int(HEIGHT / 2)
-velo_x = 2.0
-velo_y = 1.0
+ball_x = float(WIDTH / 2)
+ball_y = float(HEIGHT / 2)
+
+sign1 = -1 if random.random() < 0.5 else 1
+sign2 = -1 if random.random() < 0.5 else 1
+velo_x = sign1 * (random.random() + 1)
+velo_y = sign2 * (random.random() + 1)
 
 screen = curses.initscr()
 
@@ -63,7 +67,7 @@ curses.noecho()
 curses.cbreak()
 curses.curs_set(0)
 screen.clear()
-draw_world(screen, WIDTH, HEIGHT, ball_x, ball_y, velo_x, velo_y, player1y, player2y, PLAYERHEIGHT)
+draw_world(screen, WIDTH, HEIGHT, ball_x, ball_y, player1y, player2y, PLAYERHEIGHT)
 
 
 p1input = "-"
@@ -112,10 +116,8 @@ while True:
         screen,
         WIDTH,
         HEIGHT,
-        int(ball_x),
-        int(ball_y),
-        float(velo_x),
-        float(velo_y),
+        float(ball_x),
+        float(ball_y),
         int(player1y),
         int(player2y),
         PLAYERHEIGHT,

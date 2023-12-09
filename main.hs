@@ -17,7 +17,7 @@ data PlayerInput = PlayerInput
 data WorldState = WorldState
   { width :: Integer,
     height :: Integer,
-    ballPos :: (Integer, Integer),
+    ballPos :: (Float, Float),
     ballVelo :: (Float, Float),
     player1y :: Integer,
     player2y :: Integer
@@ -56,7 +56,7 @@ parseState state =
   WorldState
     { width = parseInteger w,
       height = parseInteger h,
-      ballPos = (parseInteger bX, parseInteger bY),
+      ballPos = (parseFloat bX, parseFloat bY),
       ballVelo = (parseFloat bvX, parseFloat bvY),
       player1y = parseInteger p1y,
       player2y = parseInteger p2y
@@ -77,20 +77,24 @@ advancePlayer currentPos key height
   | key == Up = if currentPos <= 0 then currentPos else currentPos - 1
   | key == Down = if currentPos + 10 >= height then currentPos else currentPos + 1
 
-ballCollidesWithPlayer :: (Integer, Integer) -> Integer -> Integer -> Integer -> Bool
+ballCollidesWithPlayer :: (Float, Float) -> Integer -> Integer -> Integer -> Bool
 ballCollidesWithPlayer (px, py) player1y player2y width
-  | px <= 3 = player1y < py && py < (player1y + 10)
-  | px >= width - 3 = player2y < py && py < (player2y + 10)
+  | px <= 3 = p1y < py && py < (p1y + 10)
+  | px >= w - 3 = p2y < py && py < (p2y + 10)
   | otherwise = False
+  where
+    p1y = fromIntegral player1y
+    p2y = fromIntegral player2y
+    w = fromIntegral width
 
-advanceBall :: WorldState -> ((Integer, Integer), (Float, Float))
+advanceBall :: WorldState -> ((Float, Float), (Float, Float))
 advanceBall worldState = ((px, py), (vx, vy))
   where
-    px = old_px + floor (vx * dt)
-    py = old_py + floor (vy * dt)
+    px = min (max (old_px + vx * dt) 0) (fromIntegral (width worldState))
+    py = min (max (old_py + vy * dt) 0) (fromIntegral (height worldState))
     (old_px, old_py) = ballPos worldState
     dt = 1.0
-    vy = if old_py == 0 || old_py == height worldState then -old_vy else old_vy
+    vy = if old_py <= 0 || old_py >= fromIntegral (height worldState) then -old_vy else old_vy
     vx = if ballCollidesWithPlayer (ballPos worldState) (player1y worldState) (player2y worldState) (width worldState) then -old_vx else old_vx
     (old_vx, old_vy) = ballVelo worldState
 
@@ -109,7 +113,7 @@ advanceState input worldState =
 
 applyInputToState :: (PlayerInput, WorldState) -> Return
 applyInputToState (input, worldState)
-  | x >= w - 1 = GameEnd Player1
+  | x >= fromIntegral (w - 1) = GameEnd Player1
   | x <= 1 = GameEnd Player2
   | otherwise = Running (advanceState input worldState)
   where
