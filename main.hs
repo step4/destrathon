@@ -116,11 +116,17 @@ applyInputToState (input, worldState)
     x = fst (ballPos worldState)
     w = width worldState
 
--- 1. ball behind width left and right
--- 2. neue ballposition berechnen
--- 3. neue playerpos berechnen
--- 4.
+serializeReturn :: Return -> String
+serializeReturn return = case return of
+  Running worldState -> serializeWorldState worldState
+  GameEnd winner -> serializeWinner winner
+
+serializeWinner :: Winner -> String
+serializeWinner winner = "winner " ++ show winner
+
+serializeWorldState :: WorldState -> String
+serializeWorldState worldState = show (width worldState) ++ " " ++ show (height worldState) ++ " " ++ show (fst (ballPos worldState)) ++ " " ++ show (snd (ballPos worldState)) ++ " " ++ show (fst (ballVelo worldState)) ++ " " ++ show (snd (ballVelo worldState)) ++ " " ++ show (player1y worldState) ++ " " ++ show (player2y worldState)
 
 main = do
   input <- getLine
-  print (applyInputToState (parseWholeInput input))
+  print (serializeReturn (applyInputToState (parseWholeInput input)))
