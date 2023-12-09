@@ -79,8 +79,8 @@ advancePlayer currentPos key height
 
 ballCollidesWithPlayer :: (Integer, Integer) -> Integer -> Integer -> Integer -> Bool
 ballCollidesWithPlayer (px, py) player1y player2y width
-  | px == 2 = player1y < py && py < (player1y + 10)
-  | px == width - 2 = player2y < py && py < (player2y + 10)
+  | px <= 3 = player1y < py && py < (player1y + 10)
+  | px >= width - 3 = player2y < py && py < (player2y + 10)
   | otherwise = False
 
 advanceBall :: WorldState -> ((Integer, Integer), (Float, Float))
@@ -109,8 +109,8 @@ advanceState input worldState =
 
 applyInputToState :: (PlayerInput, WorldState) -> Return
 applyInputToState (input, worldState)
-  | x > w = GameEnd Player1
-  | x < 0 = GameEnd Player2
+  | x >= w - 1 = GameEnd Player1
+  | x <= 1 = GameEnd Player2
   | otherwise = Running (advanceState input worldState)
   where
     x = fst (ballPos worldState)

@@ -5,3 +5,7 @@
 *.hi
 
 main
+main.exe
+
+output
+.vscode/
